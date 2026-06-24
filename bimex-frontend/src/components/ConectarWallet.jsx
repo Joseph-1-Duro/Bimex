@@ -1,32 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
+import {
+  isConnected, isAllowed, requestAccess, getAddress, getNetwork,
+} from "@stellar/freighter-api";
 import { CONFIG } from "../stellar/contrato";
 import { parsearError } from "../utils/errores.js";
-import {
-  getAvailableAdapters,
-  detectInstalledAdapters,
-  setCurrentAdapter,
-  loadPersistedAdapter,
-} from "../wallet/walletAdapter.js";
-
-const WALLET_ICONS = {
-  freighter: null,
-  xbull: null,
-  lobstr: null,
-};
 
 export default function ConectarWallet({ onConectado, autoConectar = true, inNavbar = false }) {
   const [estado,    setEstado]    = useState("inactivo");
   const [direccion, setDireccion] = useState(null);
   const [error,     setError]     = useState("");
-  const [wallets,   setWallets]   = useState([]);
-  const [mostrarSelector, setMostrarSelector] = useState(false);
-  const conectandoRef = useRef(false);
-
-  const detectar = useCallback(async () => {
-    const instaladas = await detectInstalledAdapters();
-    setWallets(instaladas);
-    return instaladas;
-  }, []);
 
   useEffect(() => {
     if (!autoConectar) return;
@@ -43,6 +25,31 @@ export default function ConectarWallet({ onConectado, autoConectar = true, inNav
       }
     })();
   }, [autoConectar, onConectado]);
+
+  async function conectarConPasskey() {
+    setEstado("verificando"); setError("");
+    try {
+      const rpId = window.location.hostname === "localhost" ? "localhost" : window.location.hostname;
+      let res;
+      try {
+        // Intentar iniciar sesión (autenticar)
+        res = await passkeyKit.connectWallet({ rpId });
+      } catch (err) {
+        // Solo crear si el error indica "no hay credencial", no cualquier error
+        if (err.name === "NotAllowedError" || err.message?.includes("no credential")) {
+          res = await passkeyKit.createWallet("Bimex", "usuario-bimex", { rpId });
+          setNuevaPasskey(true);
+        } else {
+          throw err; // propagar el resto de errores
+        }
+      }
+      const address = res.contractId;
+      setDireccion(address); setEstado("conectado"); onConectado?.(address);
+    } catch (e) {
+      setError(e.message || "Error al autenticar con biometría");
+      setEstado("error");
+    }
+  }
 
   const conectarConWallet = useCallback(async (walletId) => {
     if (conectandoRef.current) return;
@@ -90,20 +97,28 @@ export default function ConectarWallet({ onConectado, autoConectar = true, inNav
   }
 
   if (estado === "conectado") return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 8,
-      background: "var(--navy-dim)",
-      border: "1.5px solid rgba(30,58,95,0.20)",
-      padding: inNavbar ? "6px 14px" : "10px 18px",
-      borderRadius: 99,
-    }}>
-      <span style={{
-        width: 8, height: 8, borderRadius: "50%",
-        background: "var(--green)", flexShrink: 0,
-      }} />
-      <span style={{ fontFamily: "monospace", fontSize: inNavbar ? 12 : 14, color: "var(--navy)", fontWeight: 600 }}>
-        {direccion && direccion.length >= 8 ? `${direccion.slice(0, 4)}…${direccion.slice(-4)}` : direccion}
-      </span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        background: "var(--navy-dim)",
+        border: "1.5px solid rgba(30,58,95,0.20)",
+        padding: inNavbar ? "6px 14px" : "10px 18px",
+        borderRadius: 99,
+        width: "fit-content"
+      }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: "var(--green)", flexShrink: 0,
+        }} />
+        <span style={{ fontFamily: "monospace", fontSize: inNavbar ? 12 : 14, color: "var(--navy)", fontWeight: 600 }}>
+          {direccion && direccion.length >= 8 ? `${direccion.slice(0, 4)}…${direccion.slice(-4)}` : direccion}
+        </span>
+      </div>
+      {nuevaPasskey && !inNavbar && (
+        <p style={{ color: "var(--amber)", fontSize: "0.82rem", margin: 0, padding: "10px", background: "var(--card)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", maxWidth: 320 }}>
+          <strong>Nota:</strong> Tu nueva Smart Wallet necesita fondearse con MXNe. Contáctanos para enviarte tokens y establecer la trustline inicial.
+        </p>
+      )}
     </div>
   );
 
@@ -137,94 +152,21 @@ export default function ConectarWallet({ onConectado, autoConectar = true, inNav
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
       <button
-        onClick={abrirSelector}
+        onClick={conectar}
         disabled={verificando}
         className="btn btn-primary"
         style={{ padding: "14px 36px", fontSize: "1rem", opacity: verificando ? 0.65 : 1 }}
       >
-        {verificando ? "Conectando…" : "Conectar Wallet"}
+        {verificando ? "Conectando…" : "Conectar con Freighter"}
       </button>
-
-      {mostrarSelector && (
-        <WalletSelector
-          wallets={wallets}
-          verificando={verificando}
-          error={error}
-          estado={estado}
-          onSelect={conectarConWallet}
-          onCerrar={cerrarSelector}
-        />
-      )}
-    </div>
-  );
-}
-
-function WalletSelector({ wallets, verificando, error, estado, onSelect, onCerrar }) {
-  const todosLosWallets = getAvailableAdapters();
-
-  return (
-    <div style={{
-      marginTop: 8,
-      display: "flex", flexDirection: "column", gap: 6,
-      width: "100%", maxWidth: 300,
-    }}>
-      {todosLosWallets.map((w) => {
-        const instalada = wallets.some((wi) => wi.id === w.id);
-        return (
-          <button
-            key={w.id}
-            onClick={() => onSelect(w.id)}
-            disabled={verificando}
-            style={{
-              display: "flex", alignItems: "center", gap: 10,
-              width: "100%", padding: "10px 14px",
-              border: `1.5px solid ${instalada ? "var(--navy)" : "var(--border)"}`,
-              borderRadius: "var(--radius-sm)",
-              background: instalada ? "var(--navy-dim)" : "var(--bg)",
-              cursor: verificando ? "not-allowed" : "pointer",
-              opacity: verificando ? 0.65 : instalada ? 1 : 0.5,
-              textAlign: "left", fontFamily: "inherit",
-              transition: "all 0.15s",
-            }}
-          >
-            <span style={{
-              width: 28, height: 28, borderRadius: "50%",
-              background: instalada ? "var(--green)" : "var(--border)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "0.72rem", fontWeight: 700, color: instalada ? "#fff" : "var(--muted)",
-              flexShrink: 0,
-            }}>
-              {w.name[0]}
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--text)" }}>
-                {w.name}
-              </div>
-              <div style={{ fontSize: "0.72rem", color: instalada ? "var(--green)" : "var(--muted)" }}>
-                {instalada ? "Instalada" : "No detectada"}
-              </div>
-            </div>
-            {!instalada && (
-              <a
-                href={w.walletUrl}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  fontSize: "0.72rem", color: "var(--navy)", fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Instalar
-              </a>
-            )}
-          </button>
-        );
-      })}
 
       {estado === "sin_extension" && (
         <p style={{ color: "var(--amber)", fontSize: "0.82rem", margin: 0 }}>
-          La wallet seleccionada no está instalada.
+          Freighter no está instalado.{" "}
+          <a href="https://freighter.app" target="_blank" rel="noreferrer"
+             style={{ color: "var(--navy)", fontWeight: 600 }}>
+            Instalar →
+          </a>
         </p>
       )}
       {estado === "red_incorrecta" && (

@@ -19,14 +19,8 @@ vi.mock('@stellar/stellar-sdk', () => ({
   scValToNative: vi.fn(),
 }));
 
-vi.mock('@stellar/freighter-api', () => ({
+vi.mock('../wallet/walletAdapter.js', () => ({
   signTransaction: vi.fn(),
-  isConnected: vi.fn(),
-  isAllowed: vi.fn(),
-  requestAccess: vi.fn(),
-  getAddress: vi.fn(),
-  getNetwork: vi.fn(),
-  setAllowed: vi.fn(),
 }));
 
 import { stroopsAMXNe, mxneAStroops } from '../stellar/contrato.js';

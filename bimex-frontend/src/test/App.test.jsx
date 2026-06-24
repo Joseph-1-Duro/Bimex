@@ -14,8 +14,11 @@ vi.mock("virtual:pwa-register", () => ({
   registerSW: (...args) => registerSWMock(...args),
 }));
 
-vi.mock("@stellar/freighter-api", () => ({
+vi.mock("../wallet/walletAdapter.js", () => ({
   setAllowed: vi.fn().mockResolvedValue(undefined),
+  getCurrentAdapter: vi.fn(() => null),
+  clearAdapter: vi.fn(),
+  disconnect: vi.fn(),
 }));
 
 vi.mock("../stellar/contrato", () => ({
@@ -30,7 +33,7 @@ vi.mock("../hooks/useCetesRate", () => ({
 
 vi.mock("../components/ConectarWallet", () => ({
   default: ({ inNavbar = false }) => (
-    <button type="button">{inNavbar ? "Conectar" : "Conectar con Freighter"}</button>
+    <button type="button">{inNavbar ? "Conectar" : "Conectar Wallet"}</button>
   ),
 }));
 

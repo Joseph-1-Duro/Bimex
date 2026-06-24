@@ -34,15 +34,18 @@ export function parsearError(err) {
   if (raw.includes("socket hang up") || raw.includes("ECONNRESET"))
     return "La conexión se interrumpió. Intenta de nuevo.";
 
-  // ── Freighter wallet (específico) ─────────────────────────────────────────────
-  if (raw.includes("Freighter is not installed") || (raw.includes("freighter") && raw.includes("undefined")))
+  // ── Wallet (genérico + específico) ────────────────────────────────────────────
+  if (raw.includes("is not installed") || raw.includes("no está instalado") || (raw.includes("freighter") && raw.includes("undefined"))) {
+    if (raw.includes("xBull")) return "xBull no está instalado. Instálalo desde xbull.app para continuar.";
+    if (raw.includes("Lobstr")) return "Lobstr no está instalado. Instálalo desde lobstr.co para continuar.";
     return "Freighter no está instalado. Instálalo desde la Chrome Web Store para continuar.";
+  }
   if (raw.includes("locked") || raw.includes("Wallet is locked"))
-    return "Freighter está bloqueado. Desbloquéalo con tu contraseña e intenta de nuevo.";
+    return "La wallet está bloqueada. Desbloquéala con tu contraseña e intenta de nuevo.";
   if (raw.includes("not allowed") || raw.includes("Not allowed"))
-    return "Freighter no tiene permiso para conectar con esta app. Abre Freighter y acepta la conexión.";
+    return "La wallet no tiene permiso para conectar con esta app. Abre la wallet y acepta la conexión.";
   if (raw.includes("wrong network") || raw.includes("red incorrecta"))
-    return "Tu Freighter está en una red diferente. Cámbialo a Testnet (o Mainnet según corresponda).";
+    return "Tu wallet está en una red diferente. Cámbiala a Testnet (o Mainnet según corresponda).";
 
   // ── IPFS / Pinata ─────────────────────────────────────────────────────────────
   if (raw.includes("pinata") || raw.includes("IPFS") || raw.includes("ipfs"))
@@ -91,13 +94,19 @@ export function parsearError(err) {
     return "Error en el contrato inteligente. El contrato en testnet puede necesitar ser redesPlegado. Contacta al administrador.";
   }
 
-  // ── Errores de Freighter / wallet ─────────────────────────────────────────────
+  // ── Errores de firma / transacción ─────────────────────────────────────────────
   if (raw.includes("rechazó la firma") || raw.includes("User declined"))
-    return "Cancelaste la transacción en Freighter.";
-  if (raw.includes("no devolvió una transacción firmada"))
-    return "Freighter no devolvió la transacción firmada. Intenta de nuevo.";
+    return "Cancelaste la transacción en la wallet.";
+  if (raw.includes("no devolvió una transacción firmada") || raw.includes("no devolvió la transacción firmada"))
+    return "La wallet no devolvió la transacción firmada. Intenta de nuevo.";
   if (raw.includes("Freighter"))
     return "Error con Freighter Wallet. Asegúrate de que esté desbloqueado y en Testnet.";
+  if (raw.includes("xBull"))
+    return "Error con xBull Wallet. Asegúrate de que esté desbloqueado y en Testnet.";
+  if (raw.includes("Lobstr"))
+    return "Error con Lobstr Wallet. Asegúrate de que esté desbloqueado y en Testnet.";
+  if (raw.includes("wallet") || raw.includes("Wallet"))
+    return "Error con la wallet. Asegúrate de que esté desbloqueada y en la red correcta.";
 
   // ── Errores de red / RPC ──────────────────────────────────────────────────────
   if (raw.includes("Tiempo de espera agotado"))

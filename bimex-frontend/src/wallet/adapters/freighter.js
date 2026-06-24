@@ -8,8 +8,8 @@ const WALLET_URL = "https://freighter.app";
 
 export async function isInstalled() {
   try {
-    const { isConnected: conectado } = await freighterApi.isConnected();
-    return conectado;
+    await freighterApi.isConnected();
+    return true;
   } catch {
     return false;
   }

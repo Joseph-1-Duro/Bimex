@@ -11,8 +11,9 @@ import {
   nativeToScVal,
   scValToNative,
 } from "@stellar/stellar-sdk";
-import { signTransaction } from "@stellar/freighter-api";
+import { PasskeyKit } from "passkey-kit";
 import { formatearMXNe } from "../utils/formato.js";
+import { signTransaction } from "../wallet/walletAdapter.js";
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 
@@ -153,10 +154,10 @@ async function firmarYEnviar(txPreparada, cuentaPublica) {
     );
 
   if (errorFirma) {
-    throw new Error(`Freighter rechazó la firma: ${errorFirma?.message || JSON.stringify(errorFirma)}`);
+    throw new Error(`La wallet rechazó la firma: ${errorFirma?.message || JSON.stringify(errorFirma)}`);
   }
   if (!signedTxXdr) {
-    throw new Error("Freighter no devolvió una transacción firmada.");
+    throw new Error("La wallet no devolvió una transacción firmada.");
   }
 
     const txFirmada = TransactionBuilder.fromXDR(signedTxXdr, CONFIG.NETWORK_PASSPHRASE);

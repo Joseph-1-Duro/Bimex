@@ -23,6 +23,10 @@ vi.mock('../wallet/walletAdapter.js', () => ({
   signTransaction: vi.fn(),
 }));
 
+vi.mock('passkey-kit', () => ({
+  PasskeyKit: class { sign = vi.fn() }
+}));
+
 import { stroopsAMXNe, mxneAStroops } from '../stellar/contrato.js';
 
 describe('stroopsAMXNe', () => {

@@ -188,6 +188,8 @@ export default function DetalleProyecto({ direccion, onCerrar, onError, onToast 
   const aportado   = Number(proyecto.aportado ?? 0);
   const meta       = Number(proyecto.meta ?? 0);
   const porcentaje = meta > 0 ? Math.min((aportado / meta) * 100, 100) : 0;
+  const faltante   = Math.max(0, meta - aportado);
+  const faltanteMXNe = stroopsAMXNe(BigInt(faltante));
 
   const yieldDueno = useMemo(() => (
     esDueno
@@ -442,7 +444,12 @@ export default function DetalleProyecto({ direccion, onCerrar, onError, onToast 
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <h1 style={{ margin: 0 }}>{proyecto.nombre}</h1>
+                <div style={{ minWidth: 0 }}>
+                  <h1 style={{ margin: 0 }}>{proyecto.nombre}</h1>
+                  <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: "0.95rem" }}>
+                    🔥 {stroopsAMXNe(proyecto.aportado ?? 0)} recaudados · faltan {faltanteMXNe}
+                  </p>
+                </div>
                 <button
                   onClick={() => setMostrarQR(true)}
                   className="btn btn-outline btn-sm"
@@ -597,6 +604,10 @@ export default function DetalleProyecto({ direccion, onCerrar, onError, onToast 
               <div className="invest-panel-head">
                 <p>{t("detalle.investIn")}</p>
                 <h3>{proyecto.nombre}</h3>
+              </div>
+              <div style={{ margin: "14px 0 10px", color: "var(--muted)", fontSize: "0.95rem", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <span>🔥 Ya se recaudó {stroopsAMXNe(proyecto.aportado ?? 0)}</span>
+                <strong style={{ color: "var(--text)", whiteSpace: "nowrap" }}>Faltan {faltanteMXNe}</strong>
               </div>
 
               <div className="invest-body">
